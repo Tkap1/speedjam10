@@ -347,6 +347,8 @@ func void input()
 	e_game_state0 state0 = (e_game_state0)get_state(&game->state0);
 	e_game_state1 state1 = (e_game_state1)get_state(&hard_data->state1);
 
+	s_entity* player = &soft_data->entity_arr.data[0];
+
 	SDL_Event event;
 	while(SDL_PollEvent(&event) != 0) {
 		switch(event.type) {
@@ -383,7 +385,7 @@ func void input()
 							game->do_hard_reset = true;
 						}
 						else {
-							game->do_soft_reset = true;
+							start_restart(player->pos);
 						}
 					}
 					else if(key == SDLK_s && event.key.repeat == 0 && event.key.keysym.mod & KMOD_LCTRL) {
@@ -427,7 +429,6 @@ func void input()
 							s_v2 target_pos = zero;
 							b8 do_teleport = false;
 							if(state1 == e_game_state1_default) {
-								s_entity* player = &soft_data->entity_arr.data[0];
 								s_m4 view = m4_translate(v3(-(player->pos.x - c_world_center.x), -(player->pos.y - c_world_center.y), 0.0f));
 								s_m4 inverse_view = m4_inverse(view);
 								s_v2 temp_mouse = v2_multiply_m4(g_mouse, m4_inverse(view));
@@ -454,7 +455,6 @@ func void input()
 							}
 							if(do_teleport) {
 								game->last_debug_teleport_pos = target_pos;
-								s_entity* player = &soft_data->entity_arr.data[0];
 								player->pos = target_pos;
 								player->prev_pos = player->pos;
 								player->vel.y = 0;
@@ -462,7 +462,6 @@ func void input()
 						}
 					}
 					else if(key == SDLK_j && event.key.repeat == 0) {
-						s_entity* player = &soft_data->entity_arr.data[0];
 						player->pos = game->last_debug_teleport_pos;
 						player->prev_pos = player->pos;
 						player->vel.y = 0;
@@ -598,10 +597,7 @@ func void update()
 
 		{
 			s_entity* player = &soft_data->entity_arr.data[0];
-			player->pos = v2(
-				game->map.spawn_tile_index.x * c_tile_size + c_tile_size * 0.5f,
-				game->map.spawn_tile_index.y * c_tile_size + c_tile_size * 0.5f
-			);
+			player->pos = get_player_spawn_pos();
 			player->prev_pos = player->pos;
 			player->last_x_dir = 1;
 		}
@@ -614,7 +610,9 @@ func void update()
 
 	e_game_state1 state1 = (e_game_state1)get_state(&hard_data->state1);
 
+	b8 restarting = soft_data->start_restart_timestamp > 0;
 	b8 do_player_input = state0 == e_game_state0_play && state1 == e_game_state1_default;
+	do_player_input = do_player_input && !restarting;
 
 	if(do_player_input) {
 
@@ -889,10 +887,24 @@ func void render(float interp_dt, float delta)
 		case e_game_state0_play: {
 
 			handle_state(&hard_data->state1, game->render_time);
+			s_entity* player = &soft_data->entity_arr.data[0];
+
+			{
+				b8 restarting = soft_data->start_restart_timestamp > 0;
+				if(restarting) {
+					float time = update_time_to_render_time(game->update_time, interp_dt);
+					s_time_data data = get_time_data(time, soft_data->start_restart_timestamp, 0.4f);
+					data.percent = at_most(1.0f, data.percent);
+					player->prev_pos = player->pos;
+					player->pos = lerp_v2(soft_data->player_pos_when_restart_started, get_player_spawn_pos(), data.percent);
+					if(data.percent >= 1) {
+						game->do_soft_reset = true;
+					}
+				}
+			}
 
 			s_m4 view = zero;
 
-			s_entity* player = &soft_data->entity_arr.data[0];
 			s_v2 player_pos = lerp_v2(player->prev_pos, player->pos, interp_dt);
 
 			e_game_state1 state1 = (e_game_state1)get_state(&hard_data->state1);
@@ -1253,11 +1265,12 @@ func void render(float interp_dt, float delta)
 				float passed = game->update_time - soft_data->run_start_timestamp;
 				float loop_time = get_max_loop_time();
 				float time_left = loop_time - passed;
+				time_left = at_least(0.0f, time_left);
 				s_len_str text = format_text("%i", ceilfi(time_left));
 				draw_text(text, ui_pos, font_size, make_color(1), false, &game->font);
 				ui_pos.y += font_size;
 				if(time_left <= 0 && !game->freeze_loop) {
-					game->do_soft_reset = true;
+					start_restart(player->pos);
 				}
 			}
 
@@ -2114,7 +2127,8 @@ func void do_player_move(int movement_index, float movement, s_entity* player)
 						}
 						// @Note(tkap, 28/06/2025): Die
 						else {
-							game->do_soft_reset = true;
+							// @TODO(tkap, 30/06/2025): maybe need to break
+							start_restart(player->pos);
 						}
 					}
 					else if(tile_type == e_tile_type_breakable && has_upgrade(e_upgrade_break_tiles)) {
@@ -2303,4 +2317,24 @@ func s_v2 get_upgrade_offset(float interp_dt)
 	float t = update_time_to_render_time(game->update_time, interp_dt);
 	s_v2 result = v2(0.0f, sinf(t * 3.14f) * 3);
 	return result;
+}
+
+func s_v2 get_player_spawn_pos()
+{
+	s_v2 result = v2(
+		game->map.spawn_tile_index.x * c_tile_size + c_tile_size * 0.5f,
+		game->map.spawn_tile_index.y * c_tile_size + c_tile_size * 0.5f
+	);
+	return result;
+}
+
+func void start_restart(s_v2 pos)
+{
+	s_soft_game_data* soft_data = &game->hard_data.soft_data;
+	b8 restarting = soft_data->start_restart_timestamp > 0;
+	if(!restarting) {
+		soft_data->player_pos_when_restart_started = pos;
+		soft_data->start_restart_timestamp = game->update_time;
+		play_sound(e_sound_restart);
+	}
 }

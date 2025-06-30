@@ -47,3 +47,5 @@ func b8 tile_is_upgrade(e_tile_type type);
 func void draw_circle(s_v2 pos, float radius, s_v4 color);
 func void draw_light(s_v2 pos, float radius, s_v4 color);
 func s_v2 get_upgrade_offset(float interp_dt);
+func s_v2 get_player_spawn_pos();
+func void start_restart(s_v2 pos);

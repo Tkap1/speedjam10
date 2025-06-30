@@ -118,6 +118,7 @@ enum e_sound
 	e_sound_jump2,
 	e_sound_clap,
 	e_sound_land,
+	e_sound_restart,
 	e_sound_count,
 };
 
@@ -129,6 +130,7 @@ global constexpr s_sound_data c_sound_data_arr[e_sound_count] = {
 	{"assets/jump2.wav", 128},
 	{"assets/clap.wav", 255},
 	{"assets/land.wav", 255},
+	{"assets/restart.wav", 128},
 };
 
 

@@ -214,6 +214,8 @@ struct s_input_name_state
 
 struct s_soft_game_data
 {
+	s_v2 player_pos_when_restart_started;
+	float start_restart_timestamp;
 	float super_speed_timestamp;
 	float want_to_super_speed_timestamp;
 	float teleport_timestamp;
