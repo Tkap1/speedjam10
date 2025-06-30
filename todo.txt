@@ -23,7 +23,7 @@ option for no background
 background on main menu
 music? check rules
 keycap thingy
-sound when shield
+review hitbox vs sprite
 
 PRIORITY:
 	finish map

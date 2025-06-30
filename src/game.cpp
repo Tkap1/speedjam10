@@ -2280,6 +2280,7 @@ func void do_player_move(int movement_index, float movement, s_player* player)
 						// @Note(tkap, 28/06/2025): Activate immunity
 						else if(has_upgrade(e_upgrade_anti_spike) && soft_data->used_shield_timestamp == 0) {
 							soft_data->used_shield_timestamp = game->update_time;
+							play_sound(e_sound_shield);
 						}
 						// @Note(tkap, 28/06/2025): Die
 						else {
