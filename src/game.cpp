@@ -2134,6 +2134,25 @@ func void do_player_move(int movement_index, float movement, s_entity* player)
 						soft_data->broken_tile_arr[index.y][index.x] = true;
 						do_screen_shake(10);
 						play_sound(e_sound_break);
+
+						{
+							s_particle_emitter_a a = zero;
+							a.pos.xy = tile_pos + c_tile_size_v * 0.5f;
+							a.particle_duration = 2.0f;
+							a.radius = 10;
+							a.shrink = 0.5f;
+							a.dir = v3(0.5f, -1, 0);
+							a.dir_rand = v3(1, 0, 0);
+							a.speed = 100;
+							a.gravity = 5;
+							a.color_arr.add({.color = multiply_rgb(hex_to_rgb(0x394a50), 0.5f), .percent = 0});
+							s_particle_emitter_b b = zero;
+							b.duration = 0;
+							b.particle_count = 50;
+							b.spawn_type = e_emitter_spawn_type_rect_center;
+							b.spawn_data.xy = c_tile_size_v;
+							add_emitter(a, b);
+						}
 					}
 					else if(!collided && blocks_movement) {
 						collided = true;

@@ -857,6 +857,10 @@ func void update_particles(float delta)
 							particle.pos += random_point_in_sphere(&game->rng, b->spawn_data.x);
 						};
 
+						xcase e_emitter_spawn_type_rect_center: {
+							particle.pos.xy += random_point_in_rect_center(&game->rng, b->spawn_data.xy);
+						};
+
 						xcase e_emitter_spawn_type_rect_edge: {
 							particle.pos.xy += random_point_in_rect_edges(&game->rng, b->spawn_data.xy);
 						};
@@ -896,6 +900,7 @@ func void update_particles(float delta)
 		s_v4 color = get_particle_color(&rng, time_data.percent, data_a.color_arr);
 		color.a = 1.0f - time_data.percent;
 		particle->pos += dir * speed * delta;
+		particle->pos.y += time_data.passed * data_a.gravity;
 
 		s_v3 pos = particle->pos;
 		if(data_a.follow_emitter) {

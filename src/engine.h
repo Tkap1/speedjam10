@@ -286,6 +286,7 @@ enum e_emitter_spawn_type
 	e_emitter_spawn_type_point,
 	e_emitter_spawn_type_circle,
 	e_emitter_spawn_type_sphere,
+	e_emitter_spawn_type_rect_center,
 	e_emitter_spawn_type_rect_edge,
 };
 
@@ -308,6 +309,7 @@ struct s_particle_emitter_a
 	float radius_rand;
 	s_v3 dir;
 	s_v3 dir_rand;
+	float gravity;
 	float speed;
 	float speed_rand;
 	s_list<s_particle_color, 4> color_arr;
