@@ -29,18 +29,27 @@ void main()
 #if !defined(m_vertex)
 
 uniform sampler2D in_texture;
+uniform sampler2D noise;
 
 out vec4 out_color;
 
 void main()
 {
 	vec2 uv = v_uv * 2.0 - 1.0;
-	// @Note(tkap, 01/05/2025): This is probably needed for 2D but not 3D
-	// uv.x *= 16.0 / 9.0;
 	vec3 color = vec3(0.0);
-	float d = length(uv);
+	float n0 = texture(noise, v_uv + render_time * 0.1).r;
+	float d = length(uv) - n0 * 0.1;
+
+	float n1 = texture(noise, v_uv * 0.5 + render_time * 0.1 + 1000.0).r;
+	n1 = max(0.0, n1 - 0.5);
+	n1 = pow(n1, 0.1);
+
+	color += v_color.rgb * 1.0;
+	color -= v_color.rgb * 0.1 * n1;
 	float a = smoothstep(0.5, 0.45, d);
-	color = v_color.rgb * a * v_color.a;
-	out_color = vec4(color, 1.0);
+	color *= smoothstep(0.2, 0.3, d);
+
+	out_color = vec4(color, v_color.a * a);
+	if(out_color.a <= 0.0) { discard; }
 }
 #endif

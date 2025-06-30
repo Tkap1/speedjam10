@@ -19,6 +19,7 @@ enum e_shader
 	e_shader_background,
 	e_shader_line,
 	e_shader_light,
+	e_shader_portal,
 	e_shader_count,
 };
 
@@ -31,6 +32,7 @@ global constexpr char* c_shader_path_arr[e_shader_count] = {
 	"shaders/background.shader",
 	"shaders/line.shader",
 	"shaders/light.shader",
+	"shaders/portal.shader",
 };
 
 

@@ -979,11 +979,11 @@ func void render(float interp_dt, float delta)
 			s_v2 edge_bottomright = v2_multiply_m4(c_world_size, inverse_view);
 
 			s_v2i topleft_index = v2i(floorfi(edge_topleft.x / c_tile_size), floorfi(edge_topleft.y / c_tile_size));
-			topleft_index.x = at_least(0, topleft_index.x);
-			topleft_index.y = at_least(0, topleft_index.y);
+			topleft_index.x = at_least(0, topleft_index.x - 1);
+			topleft_index.y = at_least(0, topleft_index.y - 1);
 			s_v2i bottomright_index = v2i(ceilfi(edge_bottomright.x / c_tile_size), ceilfi(edge_bottomright.y / c_tile_size));
-			bottomright_index.x = at_most(c_max_tiles, bottomright_index.x);
-			bottomright_index.y = at_most(c_max_tiles, bottomright_index.y);
+			bottomright_index.x = at_most(c_max_tiles, bottomright_index.x + 1);
+			bottomright_index.y = at_most(c_max_tiles, bottomright_index.y + 1);
 
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		draw tiles start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 			for(int y = topleft_index.y; y < bottomright_index.y; y += 1) {
@@ -1035,11 +1035,37 @@ func void render(float interp_dt, float delta)
 								b->paused = false;
 							}
 						}
-						draw_atlas_topleft(pos, size, atlas_index, color);
+						if(tile == e_tile_type_spawn) {
+							s_instance_data data = zero;
+							data.model = m4_translate(v3(pos + c_tile_size_v * 0.5f, 0));
+							data.model = m4_multiply(data.model, m4_scale(v3(size * 4, 1)));
+							data.color = make_color(0.2f, 1.0f, 0.2f);
+							add_to_render_group(data, e_shader_portal, e_texture_white, e_mesh_quad);
+						}
+						else if(tile == e_tile_type_goal) {
+							s_instance_data data = zero;
+							data.model = m4_translate(v3(pos + c_tile_size_v * 0.5f, 0));
+							data.model = m4_multiply(data.model, m4_scale(v3(size * 4, 1)));
+							data.color = make_color(1.0f, 0.2f, 0.2f);
+							add_to_render_group(data, e_shader_portal, e_texture_white, e_mesh_quad);
+						}
+						else {
+							draw_atlas_topleft(pos, size, atlas_index, color);
+						}
 					}
 				}
 			}
 			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		draw tiles end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+			{
+				s_render_flush_data data = make_render_flush_data(zero, zero);
+				data.projection = ortho;
+				data.view = view;
+				data.blend_mode = e_blend_mode_normal;
+				data.depth_mode = e_depth_mode_no_read_yes_write;
+				render_flush(data, true);
+			}
+
 
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		draw ghosts start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 			{
@@ -1233,10 +1259,10 @@ func void render(float interp_dt, float delta)
 			{
 				clear_framebuffer_color(game->light_fbo.id, make_color(0.0f));
 
-				topleft_index.x = at_least(0, topleft_index.x - 4);
-				topleft_index.y = at_least(0, topleft_index.y - 4);
-				bottomright_index.x = at_most(c_max_tiles, bottomright_index.x + 4);
-				bottomright_index.y = at_most(c_max_tiles, bottomright_index.y + 4);
+				topleft_index.x = at_least(0, topleft_index.x - 3);
+				topleft_index.y = at_least(0, topleft_index.y - 3);
+				bottomright_index.x = at_most(c_max_tiles, bottomright_index.x + 3);
+				bottomright_index.y = at_most(c_max_tiles, bottomright_index.y + 3);
 
 				for(int y = topleft_index.y; y < bottomright_index.y; y += 1) {
 					for(int x = topleft_index.x; x < bottomright_index.x; x += 1) {
