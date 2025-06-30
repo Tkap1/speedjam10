@@ -457,8 +457,6 @@ func s_v2 draw_text(s_len_str text, s_v2 in_pos, float font_size, s_v4 color, b8
 			s_v2 bottomleft = tpos.xy;
 
 
-			// pos.xy = v2_rotate_around(center, in_pos, t.rotation) + (bottomleft - center);
-
 			s_m4 model = m4_translate(v3(tpos.xy, 0));
 			model = m4_multiply(model, m4_scale(v3(draw_size, 1)));
 

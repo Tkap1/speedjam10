@@ -633,6 +633,12 @@ func void update()
 		if(is_key_down(SDLK_d)) {
 			movement.x += speed;
 		}
+		if(movement.x == 0) {
+			player->start_run_timestamp = 0;
+		}
+		else if(player->start_run_timestamp == 0) {
+			player->start_run_timestamp = game->update_time;
+		}
 		if(movement.x > 0) {
 			player->last_x_dir = 1;
 		}
@@ -665,6 +671,8 @@ func void update()
 				else {
 					play_sound(e_sound_jump2);
 				}
+				player->jump_timestamp = game->update_time;
+				player->jump_x_dir = movement.x;
 				break;
 			}
 		}
@@ -679,6 +687,8 @@ func void update()
 		if(player->vel.y > 0) {
 			player->jumping = false;
 		}
+
+		player->last_x_vel = movement.x;
 
 		do_player_move(0, movement.x, player);
 		do_player_move(1, movement.y, player);
@@ -1037,9 +1047,11 @@ func void render(float interp_dt, float delta)
 				for(int ghost_i = 0; ghost_i < ghost_count; ghost_i += 1) {
 					s_ghost* ghost = &hard_data->ghost_arr[ghost_i];
 					int update_count = at_most(ghost->pos_arr.count - 1, soft_data->update_count);
-					int prev_pos_index = at_least(0, update_count - 1);
+					int prev_pos_index = at_most(ghost->pos_arr.count - 1, soft_data->update_count - 1);
 					s_v2 pos = lerp_v2(ghost->pos_arr[prev_pos_index], ghost->pos_arr[update_count], interp_dt);
-					draw_rect(pos, c_player_size_v, make_color(0.5f));
+
+					s_draw_player dp = get_player_draw_data();
+					draw_player(pos, 0, dp, make_color(0.5f));
 				}
 			}
 			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		draw ghosts end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1053,7 +1065,42 @@ func void render(float interp_dt, float delta)
 					blink = fmodf(passed, 0.5f) <= 0.25f;
 				}
 				if(!blink) {
-					draw_rect(player_pos, c_player_size_v, make_color(1));
+					// draw_rect(player_pos, c_player_size_v, make_color(1,0,0));
+					float time = update_time_to_render_time(game->update_time, interp_dt);
+					float angle = 0;
+					s_time_data jump_time_data = get_time_data(time, player->jump_timestamp, 0.4f);
+					if(player->jump_timestamp > 0 && jump_time_data.passed <= 0.4f) {
+						float target_angle = 0;
+						if(player->jump_x_dir < 0) {
+							target_angle = -c_pi * 2;
+						}
+						else if(player->jump_x_dir > 0) {
+							target_angle = c_pi * 2;
+						}
+						angle = lerp(0, target_angle, powf(jump_time_data.percent, 0.75f));
+					}
+					s_draw_player dp0 = get_player_draw_data();
+					s_time_data run_time_data = get_time_data(time, player->start_run_timestamp, 0.4f);
+					if(player->start_run_timestamp > 0) {
+						float s = (float)sign_as_int(player->last_x_dir);
+						float x = cosf(run_time_data.passed * 16 * s) * 3;
+						float y = sinf(run_time_data.passed * 16 * s + 0.5f) * 3;
+						dp0.left_foot_offset += v2(x, y);
+						dp0.right_foot_offset += v2(x, y);
+					}
+					dp0.head_offset.x += player->last_x_vel * 0.5f;
+					dp0.head_offset.y -= player->vel.y;
+					dp0.left_foot_offset.y -= player->vel.y;
+					dp0.right_foot_offset.y -= player->vel.y;
+					player->left_foot_offset = lerp_v2(player->left_foot_offset, dp0.left_foot_offset, delta * 30);
+					player->right_foot_offset = lerp_v2(player->right_foot_offset, dp0.right_foot_offset, delta * 30);
+					player->head_offset = lerp_v2(player->head_offset, dp0.head_offset, delta * 30);
+
+					s_draw_player dp1 = zero;
+					dp1.head_offset = player->head_offset;
+					dp1.left_foot_offset = player->left_foot_offset;
+					dp1.right_foot_offset = player->right_foot_offset;
+					draw_player(player_pos, angle, dp1, make_color(1));
 				}
 				if(has_upgrade(e_upgrade_teleport)) {
 					s_v2 teleport_pos = player_pos;
@@ -2257,9 +2304,17 @@ func b8 can_we_teleport(s_v2 teleport_pos)
 
 func void draw_atlas(s_v2 pos, s_v2 size, s_v2i index, s_v4 color)
 {
+	draw_atlas_ex(pos, size, index, color, 0);
+}
+
+func void draw_atlas_ex(s_v2 pos, s_v2 size, s_v2i index, s_v4 color, float rotation)
+{
 	s_instance_data data = zero;
 	data.model = m4_translate(v3(pos, 0));
-	data.model = m4_multiply(data.model, m4_scale(v3(size, 1)));
+	if(rotation != 0) {
+		data.model *= m4_rotate(rotation, v3(0, 0, 1));
+	}
+	data.model *= m4_scale(v3(size, 1));
 	data.color = color;
 	data.uv_min.x = index.x * c_atlas_sprite_size / (float)c_atlas_size;
 	data.uv_max.x = data.uv_min.x + c_atlas_sprite_size / (float)c_atlas_size;
@@ -2443,4 +2498,25 @@ func b8 are_we_in_super_speed()
 {
 	b8 result = check_action(game->update_time, game->hard_data.soft_data.super_speed_timestamp, c_super_speed_duration);
 	return result;
+}
+
+func void draw_player(s_v2 pos, float angle, s_draw_player dp, s_v4 color)
+{
+	s_v2 left_foot_offset = v2_rotated(dp.left_foot_offset, angle);
+	s_v2 right_foot_offset = v2_rotated(dp.right_foot_offset, angle);
+	s_v2 head_offset = v2_rotated(dp.head_offset, angle);
+	s_v2 offset = orbit_around_2d(pos, 2, angle);
+	draw_atlas_ex(offset, c_player_size_v, v2i(12, 2), multiply_rgb(color, 0.7f), angle);
+	draw_atlas_ex(offset + head_offset, v2(c_player_size_v.x * 1.1f), v2i(10, 2), color, angle);
+	draw_atlas_ex(offset + left_foot_offset, v2(c_player_size_v.x), v2i(14, 2), color, angle);
+	draw_atlas_ex(offset + right_foot_offset, v2(c_player_size_v.x), v2i(14, 2), color, angle);
+}
+
+func s_draw_player get_player_draw_data()
+{
+	s_draw_player dp = zero;
+	dp.head_offset = v2(0.0f, sinf(game->render_time * 10) * 1.5f);
+	dp.left_foot_offset = v2(0, 5);
+	dp.right_foot_offset = v2(10, 5);
+	return dp;
 }

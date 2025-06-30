@@ -154,15 +154,31 @@ struct s_map
 	e_tile_type tile_arr[c_max_tiles][c_max_tiles];
 };
 
+struct s_draw_player
+{
+	s_v2 head_offset;
+	s_v2 left_foot_offset;
+	s_v2 right_foot_offset;
+};
+
 struct s_player
 {
 	float last_x_dir;
+	float last_x_vel;
 	s_v2 pos;
 	s_v2 prev_pos;
 	s_v2 vel;
 	int jumps_done;
 	b8 jumping;
 	float on_ground_timestamp;
+
+	float jump_timestamp;
+	float jump_x_dir;
+	float start_run_timestamp;
+
+	s_v2 left_foot_offset;
+	s_v2 right_foot_offset;
+	s_v2 head_offset;
 };
 
 enum e_game_state0
