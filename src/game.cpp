@@ -332,6 +332,15 @@ func void input()
 	game->char_events.count = 0;
 	game->key_events.count = 0;
 
+	u8* keyboard_state = (u8*)SDL_GetKeyboardState(null);
+
+	if(game->input.handled) {
+		game->input = zero;
+	}
+	game->input.left = game->input.left || keyboard_state[SDL_SCANCODE_A];
+	game->input.right = game->input.right || keyboard_state[SDL_SCANCODE_D];
+
+
 	for(int i = 0; i < c_max_keys; i += 1) {
 		game->input_arr[i].half_transition_count = 0;
 	}
@@ -394,6 +403,21 @@ func void input()
 							start_restart(player->pos);
 						}
 					}
+					else if(key == SDLK_SPACE && event.key.repeat == 0) {
+						soft_data->want_to_jump_timestamp = game->update_time;
+					}
+					else if(key == SDLK_f && event.key.repeat == 0) {
+						soft_data->want_to_teleport_timestamp = game->update_time;
+					}
+					else if(key == SDLK_ESCAPE && event.key.repeat == 0) {
+						if(state0 == e_game_state0_play && state1 == e_game_state1_default) {
+							add_state(&game->state0, e_game_state0_pause);
+						}
+						else if(state0 == e_game_state0_pause) {
+							pop_state_transition(&game->state0, game->render_time, c_transition_time);
+						}
+					}
+					#if defined(m_debug)
 					else if(key == SDLK_s && event.key.repeat == 0 && event.key.keysym.mod & KMOD_LCTRL) {
 						if(state0 == e_game_state0_play && state1 == e_game_state1_editor) {
 							save_map("map.map");
@@ -405,13 +429,6 @@ func void input()
 							load_map();
 						}
 					}
-					else if(key == SDLK_SPACE && event.key.repeat == 0) {
-						soft_data->want_to_jump_timestamp = game->update_time;
-					}
-					else if(key == SDLK_f && event.key.repeat == 0) {
-						soft_data->want_to_teleport_timestamp = game->update_time;
-					}
-					#if defined(m_debug)
 					else if(key == SDLK_KP_PLUS) {
 						game->speed_index = circular_index(game->speed_index + 1, array_count(c_game_speed_arr));
 						printf("Game speed: %f\n", c_game_speed_arr[game->speed_index]);
@@ -428,14 +445,6 @@ func void input()
 						}
 						else if(state1 == e_game_state1_editor) {
 							pop_state(&hard_data->state1);
-						}
-					}
-					else if(key == SDLK_ESCAPE && event.key.repeat == 0) {
-						if(state0 == e_game_state0_play && state1 == e_game_state1_default) {
-							add_state(&game->state0, e_game_state0_pause);
-						}
-						else if(state0 == e_game_state0_pause) {
-							pop_state_transition(&game->state0, game->render_time, c_transition_time);
 						}
 					}
 					else if(key == SDLK_g && event.key.repeat == 0) {
@@ -639,11 +648,11 @@ func void update()
 			speed *= c_super_speed_multiplier;
 		}
 		s_v2 movement = zero;
-		if(is_key_down(SDLK_a)) {
+		if(game->input.left) {
 			movement.x -= speed;
 		}
 
-		if(is_key_down(SDLK_d)) {
+		if(game->input.right) {
 			movement.x += speed;
 		}
 		if(movement.x == 0) {
@@ -747,6 +756,8 @@ func void update()
 	game->update_time += (float)c_update_delay;
 	hard_data->update_count += 1;
 	soft_data->update_count += 1;
+
+	game->input.handled = true;
 }
 
 func void render(float interp_dt, float delta)

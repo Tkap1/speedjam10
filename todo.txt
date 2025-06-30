@@ -6,10 +6,9 @@ music volume slider
 
 keycap thingy
 review hitbox vs sprite
-fix "update" input checks
-check that all the cheat stuff is in debug
 
 TEST WEB
 
 
 mention that we used music that we didnt make ourselevs
+environment particles?

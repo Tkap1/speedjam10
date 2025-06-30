@@ -290,6 +290,13 @@ struct s_hard_game_data
 	s_ghost ghost_arr[c_max_ghosts];
 };
 
+struct s_input
+{
+	b8 handled;
+	b8 left;
+	b8 right;
+};
+
 struct s_game
 {
 	b8 freeze_loop;
@@ -317,6 +324,8 @@ struct s_game
 
 	s_editor editor;
 	s_map map;
+
+	s_input input;
 
 	s_fbo light_fbo;
 
