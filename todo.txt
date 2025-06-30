@@ -29,5 +29,4 @@ screenshake option
 PRIORITY:
 	finish map
 	leaderboard
-	better player sprite/model
 	start/end sprite

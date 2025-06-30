@@ -1312,12 +1312,31 @@ func void render(float interp_dt, float delta)
 					draw_text(format_text("Right click: Super speed (%.0fs duration)", c_super_speed_duration), c_tile_size_v * v2i(125, 519), temp_font_size, make_color(1), false, &game->font);
 					draw_text(S("(only 1 use per loop!)"), c_tile_size_v * v2i(125, 520), temp_font_size, make_color(1), false, &game->font);
 				}
+
+				// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		timed messages start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+				{
+					foreach_ptr(msg_i, msg, soft_data->timed_msg_arr) {
+						float time = update_time_to_render_time(game->update_time, interp_dt);
+						s_time_data data = get_time_data(time, msg->spawn_timestamp, 3.0f);
+						s_v4 color = hsv_to_rgb(data.passed * 500, 1, 1);
+						color.a = powf(1.0f - data.percent, 2);
+						draw_text(builder_to_len_str(&msg->builder), msg->pos, 40, color, true, &game->font);
+						msg->pos.y -= 100 * delta;
+
+						if(data.percent >= 1) {
+							soft_data->timed_msg_arr.remove_and_swap(msg_i);
+							msg_i -= 1;
+						}
+					}
+				}
+				// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		timed messages end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 				{
 					s_render_flush_data data = make_render_flush_data(zero, zero);
 					data.projection = ortho;
 					data.view = view;
 					data.blend_mode = e_blend_mode_normal;
-					data.depth_mode = e_depth_mode_read_no_write;
+					data.depth_mode = e_depth_mode_no_read_yes_write;
 					render_flush(data, true);
 				}
 			}
@@ -2173,27 +2192,35 @@ func void do_player_move(int movement_index, float movement, s_player* player)
 					}
 					if(tile_type == e_tile_type_upgrade_jump) {
 						hard_data->upgrade_arr[e_upgrade_one_more_jump] += 1;
+						add_timed_msg(S("One more jump!"), tile_pos + c_tile_size_v * 0.5f);
 					}
 					else if(tile_type == e_tile_type_upgrade_speed) {
 						hard_data->upgrade_arr[e_upgrade_speed] += 1;
+						add_timed_msg(format_text("+%.0f%% speed!", c_increased_movement_speed_per_upgrade * 100), tile_pos + c_tile_size_v * 0.5f);
 					}
 					else if(tile_type == e_tile_type_upgrade_more_loop_time) {
 						hard_data->upgrade_arr[e_upgrade_more_loop_time] += 1;
+						add_timed_msg(format_text("+%.0fs loop time!", c_extra_loop_time_per_upgrade), tile_pos + c_tile_size_v * 0.5f);
 					}
 					else if(tile_type == e_tile_type_upgrade_less_run_time) {
 						hard_data->upgrade_arr[e_upgrade_less_run_time] += 1;
+						add_timed_msg(format_text("-%is total run time!", c_seconds_saved_per_upgrade), tile_pos + c_tile_size_v * 0.5f);
 					}
 					else if(tile_type == e_tile_type_upgrade_anti_spike) {
 						hard_data->upgrade_arr[e_upgrade_anti_spike] += 1;
+						add_timed_msg(S("Immune to spikes! (once per loop)"), tile_pos + c_tile_size_v * 0.5f);
 					}
 					else if(tile_type == e_tile_type_upgrade_teleport) {
 						hard_data->upgrade_arr[e_upgrade_teleport] += 1;
+						add_timed_msg(S("Teleport!!! (left click or F)"), tile_pos + c_tile_size_v * 0.5f);
 					}
 					else if(tile_type == e_tile_type_upgrade_break_tiles) {
 						hard_data->upgrade_arr[e_upgrade_break_tiles] += 1;
+						add_timed_msg(S("Can break some blocks!"), tile_pos + c_tile_size_v * 0.5f);
 					}
 					else if(tile_type == e_tile_type_upgrade_super_speed) {
 						hard_data->upgrade_arr[e_upgrade_super_speed] += 1;
+						add_timed_msg(S("SUPER SPEED!!! (right click, once per loop)"), tile_pos + c_tile_size_v * 0.5f);
 					}
 					else if(tile_type == e_tile_type_goal) {
 						if(game->leaderboard_nice_name.count <= 0 && c_on_web) {
@@ -2519,4 +2546,13 @@ func s_draw_player get_player_draw_data()
 	dp.left_foot_offset = v2(0, 5);
 	dp.right_foot_offset = v2(10, 5);
 	return dp;
+}
+
+func void add_timed_msg(s_len_str str, s_v2 pos)
+{
+	s_timed_msg msg = zero;
+	msg.pos = pos;
+	msg.spawn_timestamp = game->update_time;
+	str_into_builder(&msg.builder, str);
+	game->hard_data.soft_data.timed_msg_arr.add_if_not_full(msg);
 }

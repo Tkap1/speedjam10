@@ -226,6 +226,13 @@ struct s_ghost
 	s_list<s_v2, c_max_ghost_positions> pos_arr;
 };
 
+struct s_timed_msg
+{
+	float spawn_timestamp;
+	s_v2 pos;
+	s_str_builder<64> builder;
+};
+
 struct s_soft_game_data
 {
 	int update_count;
@@ -252,6 +259,8 @@ struct s_soft_game_data
 
 	b8 added_particle_emitter_arr[c_max_tiles][c_max_tiles];
 	int particle_emitter_index_arr[c_max_tiles][c_max_tiles];
+
+	s_list<s_timed_msg, 8> timed_msg_arr;
 };
 
 enum e_upgrade

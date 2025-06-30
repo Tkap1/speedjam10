@@ -56,3 +56,4 @@ func s_m4 get_editor_view_matrix();
 func b8 are_we_in_super_speed();
 func void draw_player(s_v2 pos, float angle, s_draw_player dp, s_v4 color);
 func s_draw_player get_player_draw_data();
+func void add_timed_msg(s_len_str str, s_v2 pos);
