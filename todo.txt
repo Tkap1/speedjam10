@@ -24,8 +24,6 @@ background on main menu
 music? check rules
 keycap thingy
 sound when shield
-screenshake option
-gray out whe nno jumps
 
 PRIORITY:
 	finish map

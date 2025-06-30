@@ -319,8 +319,9 @@ struct s_game
 
 	s_fbo light_fbo;
 
-	b8 turn_off_death_sound;
 	b8 hide_timer;
+	b8 hide_ghosts;
+	b8 disable_screen_shake;
 	b8 turn_off_all_sounds;
 
 	int update_count_at_win_time;

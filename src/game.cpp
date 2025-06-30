@@ -861,14 +861,20 @@ func void render(float interp_dt, float delta)
 			s_v2 pos = wxy(0.5f, 0.4f);
 
 			{
-				s_len_str text = format_text("Death sound: %s", game->turn_off_death_sound ? "Off" : "On");
-				do_bool_button(text, pos, true, &game->turn_off_death_sound);
+				s_len_str text = format_text("Sound: %s", game->turn_off_all_sounds ? "Off" : "On");
+				do_bool_button(text, pos, true, &game->turn_off_all_sounds);
 				pos.y += 80;
 			}
 
 			{
-				s_len_str text = format_text("Sound: %s", game->turn_off_all_sounds ? "Off" : "On");
-				do_bool_button(text, pos, true, &game->turn_off_all_sounds);
+				s_len_str text = format_text("Ghosts: %s", game->hide_ghosts ? "Off" : "On");
+				do_bool_button(text, pos, true, &game->hide_ghosts);
+				pos.y += 80;
+			}
+
+			{
+				s_len_str text = format_text("Screen shake: %s", game->disable_screen_shake ? "Off" : "On");
+				do_bool_button(text, pos, true, &game->disable_screen_shake);
 				pos.y += 80;
 			}
 
@@ -1068,7 +1074,7 @@ func void render(float interp_dt, float delta)
 
 
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		draw ghosts start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-			{
+			if(!game->hide_ghosts) {
 				int ghost_count = at_most(c_max_ghosts, hard_data->ghost_count);
 				for(int ghost_i = 0; ghost_i < ghost_count; ghost_i += 1) {
 					s_ghost* ghost = &hard_data->ghost_arr[ghost_i];
@@ -1126,7 +1132,12 @@ func void render(float interp_dt, float delta)
 					dp1.head_offset = player->head_offset;
 					dp1.left_foot_offset = player->left_foot_offset;
 					dp1.right_foot_offset = player->right_foot_offset;
-					draw_player(player_pos, angle, dp1, make_color(1));
+
+					s_v4 color = make_color(1);
+					if(player->jumps_done >= get_max_player_jumps()) {
+						color = make_color(0.5f);
+					}
+					draw_player(player_pos, angle, dp1, color);
 				}
 				if(has_upgrade(e_upgrade_teleport)) {
 					s_v2 teleport_pos = player_pos;
@@ -2529,7 +2540,7 @@ func s_m4 get_player_view_matrix(s_v2 player_pos)
 {
 	s_soft_game_data* soft_data = &game->hard_data.soft_data;
 	s_m4 result = m4_translate(v3(-(player_pos.x - c_world_center.x), -(player_pos.y - c_world_center.y), 0.0f));
-	if(check_action(game->render_time, soft_data->start_screen_shake_timestamp, c_shake_duration)) {
+	if(!game->disable_screen_shake && check_action(game->render_time, soft_data->start_screen_shake_timestamp, c_shake_duration)) {
 		s_v3 offset = zero;
 		s_time_data data = get_time_data(game->render_time, soft_data->start_screen_shake_timestamp, c_shake_duration);
 		float t = at_least(0.0f, data.inv_percent);
