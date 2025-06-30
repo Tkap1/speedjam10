@@ -20,3 +20,5 @@ bigger hitbox on ugprades
 do 100% speedrun and normal any%
 upgrades are sometimes drawn behind blocks
 option for no background
+background on main menu
+music? check rules

@@ -2125,12 +2125,15 @@ func void do_player_move(int movement_index, float movement, s_entity* player)
 						collided = true;
 						player->pos.all[movement_index] -= to_move * s;
 						if(movement_index == 1) {
-							player->vel.y = 0;
 							if(s > 0) {
 								player->jumps_done = 0;
 								player->jumping = false;
 								player->on_ground_timestamp = game->update_time;
+								if(player->vel.y >= 7) {
+									play_sound(e_sound_land);
+								}
 							}
+							player->vel.y = 0;
 						}
 					}
 				}
