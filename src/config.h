@@ -32,6 +32,7 @@ global constexpr float c_shake_duration = 0.15f;
 global constexpr float c_teleport_cooldown = 0.5f;
 global constexpr int c_max_ghosts = 64;
 global constexpr int c_max_ghost_positions = 120 * c_updates_per_second;
+global constexpr int c_music_volume = 8;
 
 global constexpr float c_game_speed_arr[] = {
 	0.0f, 0.01f, 0.1f, 0.25f, 0.5f,

@@ -43,13 +43,14 @@ void main()
 	vec2 uv = v_uv * 2.0;
 	uv.y = 1.0 - uv.y;
 	uv.x *= 16.0/9.0;
-	vec2 player = player_pos.xy * vec2(1, 1) * 0.001;
+	vec2 player = player_pos.xy * vec2(1.0, 1.0) * 0.001;
 	uv = sin(uv + vec2(-0.5, 0.5) + player - render_time * 0.01) * 0.5 + 0.5;
 	float n = texture(noise, (uv + render_time * 0.05)).r;
 	vec3 color = vec3(0.0);
 	for(int i = 0; i < 50; i += 1) {
-		float r0 = random(vec2(i * 3.141, i * 3.141));
-		float r1 = random(vec2(i * 547.341, i * 577.341));
+		float fi = float(i);
+		float r0 = random(vec2(fi * 3.141, fi * 3.141));
+		float r1 = random(vec2(fi * 547.341, fi * 577.341));
 		float d = distance(vec2(r0, r1), uv);
 		float s = smoothstep(0.1, 0.15, d) * smoothstep(0.15, 0.1, d);
 		color.g += s * n * 0.5;

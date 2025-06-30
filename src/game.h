@@ -236,6 +236,7 @@ struct s_timed_msg
 
 struct s_soft_game_data
 {
+	b8 tried_to_submit_score;
 	int update_count;
 	s_ghost curr_ghost;
 	b8 collected_upgrade_this_run;

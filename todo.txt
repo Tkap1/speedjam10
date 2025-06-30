@@ -9,5 +9,10 @@ keycap thingy
 TEST WEB
 
 
-mention that we used music that we didnt make ourselevs
 environment particles?
+
+bug that leaderboard doesn't update immediately?
+
+O/P to pause because escape fucks full screen
+make it easier, probably
+pictures

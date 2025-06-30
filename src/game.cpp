@@ -219,9 +219,9 @@ m_dll_export void init(s_platform_data* platform_data)
 		game->sound_arr[i] = load_sound_from_file(c_sound_data_arr[i].path, c_sound_data_arr[i].volume);
 	}
 
-	Mix_Music* music = Mix_LoadMUS("assets/music.mp3");
+	Mix_Music* music = Mix_LoadMUS("assets/music.ogg");
 	if(music) {
-		Mix_VolumeMusic(8);
+		Mix_VolumeMusic(c_music_volume);
 		Mix_PlayMusic(music, -1);
 	}
 
@@ -770,7 +770,7 @@ func void render(float interp_dt, float delta)
 			Mix_VolumeMusic(0);
 		}
 		else {
-			Mix_VolumeMusic(8);
+			Mix_VolumeMusic(c_music_volume);
 		}
 	}
 
@@ -2390,7 +2390,8 @@ func void do_player_move(int movement_index, float movement, s_player* player)
 						if(game->leaderboard_nice_name.count <= 0 && c_on_web) {
 							add_temporary_state_transition(&game->state0, e_game_state0_input_name, game->render_time, c_transition_time);
 						}
-						else {
+						else if(!soft_data->tried_to_submit_score) {
+							soft_data->tried_to_submit_score = true;
 							add_state_transition(&game->state0, e_game_state0_win_leaderboard, game->render_time, c_transition_time);
 							int update_count = get_update_count_with_upgrades(hard_data->update_count);
 							game->update_count_at_win_time = update_count;

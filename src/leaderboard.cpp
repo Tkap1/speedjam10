@@ -501,7 +501,7 @@ func void set_leaderboard_name(s_len_str name)
 func void on_set_leaderboard_name(b8 success)
 {
 	if(success) {
-		set_state0_next_frame(e_game_state0_win_leaderboard);
+		add_state(&game->state0, e_game_state0_win_leaderboard);
 		submit_leaderboard_score(game->hard_data.update_count, c_leaderboard_id);
 		game->update_count_at_win_time = game->hard_data.update_count;
 	}
