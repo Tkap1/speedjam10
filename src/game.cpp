@@ -219,6 +219,12 @@ m_dll_export void init(s_platform_data* platform_data)
 		game->sound_arr[i] = load_sound_from_file(c_sound_data_arr[i].path, c_sound_data_arr[i].volume);
 	}
 
+	Mix_Music* music = Mix_LoadMUS("assets/music.mp3");
+	if(music) {
+		Mix_VolumeMusic(8);
+		Mix_PlayMusic(music, -1);
+	}
+
 	for(int i = 0; i < e_texture_count; i += 1) {
 		char* path = c_texture_path_arr[i];
 		if(strlen(path) > 0) {
@@ -557,7 +563,6 @@ func void input()
 
 func void update()
 {
-
 	game->update_frame_arena.used = 0;
 
 	e_game_state0 state0 = (e_game_state0)get_state(&game->state0);
@@ -748,6 +753,16 @@ func void render(float interp_dt, float delta)
 {
 	game->render_frame_arena.used = 0;
 
+	if(!game->music_volume_clean) {
+		game->music_volume_clean = true;
+		if(game->disable_music) {
+			Mix_VolumeMusic(0);
+		}
+		else {
+			Mix_VolumeMusic(8);
+		}
+	}
+
 	#if defined(_WIN32)
 	while(g_platform_data->hot_read_index[1] < g_platform_data->hot_write_index) {
 		char* path = g_platform_data->hot_file_arr[g_platform_data->hot_read_index[1] % c_max_hot_files];
@@ -931,12 +946,21 @@ func void render(float interp_dt, float delta)
 			game->speed = 0;
 			draw_background(zero, ortho);
 
-			s_v2 pos = wxy(0.5f, 0.3f);
+			s_v2 pos = wxy(0.5f, 0.2f);
 			s_v2 button_size = v2(600, 48);
 
 			{
 				s_len_str text = format_text("Sound: %s", game->turn_off_all_sounds ? "Off" : "On");
 				do_bool_button_ex(text, pos, button_size, true, &game->turn_off_all_sounds);
+				pos.y += 80;
+			}
+
+			{
+				s_len_str text = format_text("Music: %s", game->disable_music ? "Off" : "On");
+				b8 result = do_bool_button_ex(text, pos, button_size, true, &game->disable_music);
+				if(result) {
+					game->music_volume_clean = false;
+				}
 				pos.y += 80;
 			}
 

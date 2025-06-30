@@ -2,11 +2,14 @@
 move player to spawn point on restart, very fast. about 0.5s max. have some noise fog thingy
 upgrades are sometimes drawn behind blocks
 do 100% speedrun and normal any%
+music volume slider
 
-music? check rules
 keycap thingy
 review hitbox vs sprite
 fix "update" input checks
 check that all the cheat stuff is in debug
 
 TEST WEB
+
+
+mention that we used music that we didnt make ourselevs

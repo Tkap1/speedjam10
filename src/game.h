@@ -320,6 +320,8 @@ struct s_game
 
 	s_fbo light_fbo;
 
+	b8 music_volume_clean;
+	b8 disable_music;
 	b8 dim_player_when_out_of_jumps;
 	b8 hide_background;
 	b8 hide_timer;
