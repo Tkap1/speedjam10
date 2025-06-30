@@ -1219,7 +1219,6 @@ func void render(float interp_dt, float delta)
 					blink = fmodf(passed, 0.5f) <= 0.25f;
 				}
 				if(!blink) {
-					// draw_rect(player_pos, c_player_size_v, make_color(1,0,0));
 					float time = update_time_to_render_time(game->update_time, interp_dt);
 					float angle = 0;
 					s_time_data jump_time_data = get_time_data(time, player->jump_timestamp, 0.4f);
@@ -1259,6 +1258,7 @@ func void render(float interp_dt, float delta)
 					if(game->dim_player_when_out_of_jumps && player->jumps_done >= get_max_player_jumps()) {
 						color = make_color(0.5f);
 					}
+
 					draw_player(player_pos, angle, dp1, color);
 				}
 				if(has_upgrade(e_upgrade_teleport)) {
@@ -2698,10 +2698,11 @@ func void draw_player(s_v2 pos, float angle, s_draw_player dp, s_v4 color)
 	s_v2 right_foot_offset = v2_rotated(dp.right_foot_offset, angle);
 	s_v2 head_offset = v2_rotated(dp.head_offset, angle);
 	s_v2 offset = orbit_around_2d(pos, 2, angle);
-	draw_atlas_ex(offset, c_player_size_v, v2i(12, 2), multiply_rgb(color, 0.7f), angle);
-	draw_atlas_ex(offset + head_offset, v2(c_player_size_v.x * 1.1f), v2i(10, 2), color, angle);
-	draw_atlas_ex(offset + left_foot_offset, v2(c_player_size_v.x), v2i(14, 2), color, angle);
-	draw_atlas_ex(offset + right_foot_offset, v2(c_player_size_v.x), v2i(14, 2), color, angle);
+	s_v2 size = c_player_size_v * v2(1.25f, 1.15f);
+	draw_atlas_ex(offset, size, v2i(12, 2), multiply_rgb(color, 0.7f), angle);
+	draw_atlas_ex(offset + head_offset, v2(size.x * 1.1f), v2i(10, 2), color, angle);
+	draw_atlas_ex(offset + left_foot_offset, v2(size.x), v2i(14, 2), color, angle);
+	draw_atlas_ex(offset + right_foot_offset, v2(size.x), v2i(14, 2), color, angle);
 }
 
 func s_draw_player get_player_draw_data()

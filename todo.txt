@@ -5,7 +5,6 @@ do 100% speedrun and normal any%
 music volume slider
 
 keycap thingy
-review hitbox vs sprite
 
 TEST WEB
 
