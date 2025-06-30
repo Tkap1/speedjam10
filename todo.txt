@@ -1,32 +1,12 @@
 
-missing sounds
-particles
-wobble for upgrades
-ghosts
-
-one way only tiles? so we can allow exits from upgrades without allowing entry
-
 move player to spawn point on restart, very fast. about 0.5s max. have some noise fog thingy
-
-popup of what the upgrades do!
-
-better teleport display
-
-maybe do add jump height buff
-split time ugprades into +loop time and -run time
-better player sprite
-gray out if no more jumps?
-bigger hitbox on ugprades
-do 100% speedrun and normal any%
 upgrades are sometimes drawn behind blocks
-option for no background
-background on main menu
+do 100% speedrun and normal any%
+
 music? check rules
 keycap thingy
 review hitbox vs sprite
 fix "update" input checks
 check that all the cheat stuff is in debug
 
-PRIORITY:
-	finish map
-	leaderboard
+TEST WEB

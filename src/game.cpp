@@ -706,11 +706,31 @@ func void update()
 			teleport_pos.x += c_teleport_distance * player->last_x_dir;;
 			if(
 				check_action(game->update_time, soft_data->want_to_teleport_timestamp, 0.0f) &&
-				has_upgrade(e_upgrade_teleport) && can_we_teleport(teleport_pos) && !check_action(game->update_time, soft_data->teleport_timestamp, 0.5f)
+				has_upgrade(e_upgrade_teleport) && can_we_teleport_without_getting_stuck(teleport_pos) && !check_action(game->update_time, soft_data->teleport_timestamp, c_teleport_cooldown)
 			) {
 				soft_data->teleport_timestamp = game->update_time;
 				player->pos = teleport_pos;
 				player->prev_pos = player->pos;
+				play_sound(e_sound_teleport);
+
+				{
+					s_particle_emitter_a a = zero;
+					a.pos.xy = player->pos;
+					a.particle_duration = 0.5f;
+					a.radius = 10;
+					a.shrink = 0.5f;
+					a.dir = v3(1, 1, 0);
+					a.dir_rand = v3(1, 1, 0);
+					a.speed = 200;
+					a.color_arr.add({.color = multiply_rgb(hex_to_rgb(0x497A85), 1.0f), .percent = 0});
+					a.color_arr.add({.color = multiply_rgb(hex_to_rgb(0x3E244B), 1.0f), .percent = 0.2f});
+					s_particle_emitter_b b = zero;
+					b.duration = 0;
+					b.particle_count = 200;
+					b.spawn_type = e_emitter_spawn_type_circle;
+					b.spawn_data.x = c_player_size_v.y * 0.5f;
+					add_emitter(a, b);
+				}
 			}
 		}
 	}
@@ -1210,10 +1230,12 @@ func void render(float interp_dt, float delta)
 					s_v2 teleport_pos = player_pos;
 					teleport_pos.x += player->last_x_dir * c_teleport_distance;
 					s_v4 color = make_color(0.0f, 0.5f, 0.0f);
-					if(!can_we_teleport(teleport_pos)) {
+					s_time_data time_data = get_time_data(game->update_time, soft_data->teleport_timestamp, c_teleport_cooldown);
+					if(!can_we_teleport_without_getting_stuck(teleport_pos) || time_data.percent < 1) {
 						color = make_color(0.5f, 0.0f, 0.0f);
 					}
-					draw_rect(teleport_pos, c_player_size_v * v2(1.0f, 0.5f), color);
+					s_v2 indicator_size = lerp_v2(zero, c_player_size_v * v2(1.0f, 1.0f), at_most(1.0f, time_data.percent));
+					draw_rect(teleport_pos, indicator_size, color);
 				}
 				if(are_we_in_super_speed()) {
 					if(soft_data->super_speed_emitter_index.valid) {
@@ -2404,7 +2426,7 @@ func void do_player_move(int movement_index, float movement, s_player* player)
 	}
 }
 
-func b8 can_we_teleport(s_v2 teleport_pos)
+func b8 can_we_teleport_without_getting_stuck(s_v2 teleport_pos)
 {
 	s_soft_game_data* soft_data = &game->hard_data.soft_data;
 	s_v2i player_index = v2i(floorfi(teleport_pos.x / c_tile_size), floorfi(teleport_pos.y / c_tile_size));

@@ -35,7 +35,7 @@ func void save_map(char* path);
 func b8 is_valid_2d_index(s_v2i index, int x_count, int y_count);
 func b8 check_action(float curr_time, float timestamp, float grace);
 func void do_player_move(int movement_index, float movement, s_player* player);
-func b8 can_we_teleport(s_v2 teleport_pos);
+func b8 can_we_teleport_without_getting_stuck(s_v2 teleport_pos);
 func void draw_atlas(s_v2 pos, s_v2 size, s_v2i index, s_v4 color);
 func void draw_atlas_ex(s_v2 pos, s_v2 size, s_v2i index, s_v4 color, float rotation);
 func void draw_atlas_topleft(s_v2 pos, s_v2 size, s_v2i index, s_v4 color);
