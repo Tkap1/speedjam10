@@ -121,12 +121,6 @@ enum e_player_state
 	e_player_state_default,
 };
 
-enum e_entity_type
-{
-	e_entity_type_player,
-	e_entity_type_pickup,
-};
-
 enum e_tile_type : s8
 {
 	e_tile_type_none,
@@ -160,10 +154,9 @@ struct s_map
 	e_tile_type tile_arr[c_max_tiles][c_max_tiles];
 };
 
-struct s_entity
+struct s_player
 {
 	float last_x_dir;
-	e_entity_type type;
 	s_v2 pos;
 	s_v2 prev_pos;
 	s_v2 vel;
@@ -212,8 +205,17 @@ struct s_input_name_state
 	s_str_builder<64> error_str;
 };
 
+struct s_ghost
+{
+	s_list<s_v2, c_max_ghost_positions> pos_arr;
+};
+
 struct s_soft_game_data
 {
+	int update_count;
+	s_ghost curr_ghost;
+	b8 collected_upgrade_this_run;
+	s_maybe<int> super_speed_emitter_index;
 	float shake_intensity;
 	s_v2 player_pos_when_restart_started;
 	float start_screen_shake_timestamp;
@@ -226,7 +228,7 @@ struct s_soft_game_data
 	float used_shield_timestamp;
 	float stop_jump_timestamp;
 	float want_to_jump_timestamp;
-	s_entity_manager<s_entity, c_max_entities> entity_arr;
+	s_player player;
 	s_entity_manager<s_particle_emitter_a, c_max_particle_emitters> emitter_a_arr;
 	s_particle_emitter_b emitter_b_arr[c_max_particle_emitters];
 	s_list<s_particle, 65536> particle_arr;
@@ -256,6 +258,10 @@ struct s_hard_game_data
 	int update_count;
 	int upgrade_arr[e_upgrade_count];
 	b8 consumed_tile_arr[c_max_tiles][c_max_tiles];
+
+	// @Note(tkap, 30/06/2025): Circular buffer
+	int ghost_count;
+	s_ghost ghost_arr[c_max_ghosts];
 };
 
 struct s_game

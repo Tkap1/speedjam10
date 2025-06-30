@@ -119,6 +119,7 @@ enum e_sound
 	e_sound_clap,
 	e_sound_land,
 	e_sound_restart,
+	e_sound_super_speed,
 	e_sound_count,
 };
 
@@ -131,6 +132,7 @@ global constexpr s_sound_data c_sound_data_arr[e_sound_count] = {
 	{"assets/clap.wav", 255},
 	{"assets/land.wav", 255},
 	{"assets/restart.wav", 128},
+	{"assets/super_speed.wav", 255},
 };
 
 

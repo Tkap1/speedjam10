@@ -347,7 +347,7 @@ func void input()
 	e_game_state0 state0 = (e_game_state0)get_state(&game->state0);
 	e_game_state1 state1 = (e_game_state1)get_state(&hard_data->state1);
 
-	s_entity* player = &soft_data->entity_arr.data[0];
+	s_player* player = &soft_data->player;
 
 	SDL_Event event;
 	while(SDL_PollEvent(&event) != 0) {
@@ -417,7 +417,7 @@ func void input()
 					else if(key == SDLK_F1) {
 						if(state1 == e_game_state1_default) {
 							add_state(&hard_data->state1, e_game_state1_editor);
-							game->editor.cam_pos = (soft_data->entity_arr.data[0].pos - c_world_center);
+							game->editor.cam_pos = (soft_data->player.pos - c_world_center);
 							game->editor.zoom = 1;
 						}
 						else if(state1 == e_game_state1_editor) {
@@ -582,29 +582,23 @@ func void update()
 
 	if(game->do_soft_reset) {
 		game->do_soft_reset = false;
+
 		memset(soft_data, 0, sizeof(*soft_data));
 
 		soft_data->run_start_timestamp = game->update_time;
 
-		entity_manager_reset(&soft_data->entity_arr);
 		entity_manager_reset(&soft_data->emitter_a_arr);
 
 		{
-			s_entity player = zero;
-			entity_manager_add(&soft_data->entity_arr, player);
-		}
-
-		{
-			s_entity* player = &soft_data->entity_arr.data[0];
+			s_player* player = &soft_data->player;
 			player->pos = get_player_spawn_pos();
 			player->prev_pos = player->pos;
 			player->last_x_dir = 1;
 		}
 
-
 	}
 
-	s_entity* player = &soft_data->entity_arr.data[0];
+	s_player* player = &soft_data->player;
 	player->prev_pos = player->pos;
 
 	e_game_state1 state1 = (e_game_state1)get_state(&hard_data->state1);
@@ -619,6 +613,8 @@ func void update()
 			check_action(game->update_time, soft_data->want_to_super_speed_timestamp, 0.0f) && soft_data->super_speed_timestamp == 0 &&
 			has_upgrade(e_upgrade_super_speed)
 		) {
+			do_screen_shake(50);
+			play_sound(e_sound_super_speed);
 			soft_data->super_speed_timestamp = game->update_time;
 		}
 
@@ -626,7 +622,7 @@ func void update()
 		if(!check_action(game->update_time, player->on_ground_timestamp, (float)c_update_delay * 2)) {
 			speed *= 1.25f;
 		}
-		if(check_action(game->update_time, soft_data->super_speed_timestamp, c_super_speed_duration)) {
+		if(are_we_in_super_speed()) {
 			speed *= c_super_speed_multiplier;
 		}
 		s_v2 movement = zero;
@@ -701,8 +697,13 @@ func void update()
 		}
 	}
 
+	if(!soft_data->curr_ghost.pos_arr.is_full()) {
+		soft_data->curr_ghost.pos_arr.add(player->pos);
+	}
+
 	game->update_time += (float)c_update_delay;
 	hard_data->update_count += 1;
+	soft_data->update_count += 1;
 }
 
 func void render(float interp_dt, float delta)
@@ -886,7 +887,7 @@ func void render(float interp_dt, float delta)
 		case e_game_state0_play: {
 
 			handle_state(&hard_data->state1, game->render_time);
-			s_entity* player = &soft_data->entity_arr.data[0];
+			s_player* player = &soft_data->player;
 
 			{
 				b8 restarting = soft_data->start_restart_timestamp > 0;
@@ -1030,11 +1031,21 @@ func void render(float interp_dt, float delta)
 			}
 			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		draw tiles end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-			for(int i = 0; i < c_max_entities; i += 1) {
-				if(!soft_data->entity_arr.active[i]) { continue; }
-				s_entity* entity = &soft_data->entity_arr.data[i];
-				s_v2 pos = lerp_v2(entity->prev_pos, entity->pos, interp_dt);
+			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		draw ghosts start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+			{
+				int ghost_count = at_most(c_max_ghosts, hard_data->ghost_count);
+				for(int ghost_i = 0; ghost_i < ghost_count; ghost_i += 1) {
+					s_ghost* ghost = &hard_data->ghost_arr[ghost_i];
+					int update_count = at_most(ghost->pos_arr.count - 1, soft_data->update_count);
+					int prev_pos_index = at_least(0, update_count - 1);
+					s_v2 pos = lerp_v2(ghost->pos_arr[prev_pos_index], ghost->pos_arr[update_count], interp_dt);
+					draw_rect(pos, c_player_size_v, make_color(0.5f));
+				}
+			}
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		draw ghosts end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		draw player start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+			{
 				b8 immune = are_we_immune();
 				b8 blink = false;
 				if(immune) {
@@ -1042,19 +1053,53 @@ func void render(float interp_dt, float delta)
 					blink = fmodf(passed, 0.5f) <= 0.25f;
 				}
 				if(!blink) {
-					draw_rect(pos, c_player_size_v, make_color(1));
+					draw_rect(player_pos, c_player_size_v, make_color(1));
 				}
 				if(has_upgrade(e_upgrade_teleport)) {
-					s_v2 teleport_pos = pos;
-					teleport_pos.x += entity->last_x_dir * c_teleport_distance;
+					s_v2 teleport_pos = player_pos;
+					teleport_pos.x += player->last_x_dir * c_teleport_distance;
 					s_v4 color = make_color(0.0f, 0.5f, 0.0f);
 					if(!can_we_teleport(teleport_pos)) {
 						color = make_color(0.5f, 0.0f, 0.0f);
 					}
 					draw_rect(teleport_pos, c_player_size_v * v2(1.0f, 0.5f), color);
-
+				}
+				if(are_we_in_super_speed()) {
+					if(soft_data->super_speed_emitter_index.valid) {
+						s_particle_emitter_a* emitter = &soft_data->emitter_a_arr.data[soft_data->super_speed_emitter_index.value];
+						emitter->pos.xy = player_pos;
+					}
+					else {
+						s_particle_emitter_a a = zero;
+						a.pos.xy = player_pos;
+						a.particle_duration = 0.5f;
+						a.radius = 10;
+						a.shrink = 0.5f;
+						a.dir = v3(0.5f, -1, 0);
+						a.dir_rand = v3(1, 0, 0);
+						a.speed = 200;
+						a.color_arr.add({.color = multiply_rgb(hex_to_rgb(0xFFFFFF), 1.0f), .percent = 0});
+						a.color_arr.add({.color = multiply_rgb(hex_to_rgb(0xC7B94D), 1.0f), .percent = 0.2f});
+						a.color_arr.add({.color = multiply_rgb(hex_to_rgb(0xD8503B), 1.0f), .percent = 0.5f});
+						a.color_arr.add({.color = multiply_rgb(hex_to_rgb(0x0), 1.0f), .percent = 0.9f});
+						s_particle_emitter_b b = zero;
+						b.duration = -1;
+						b.particle_count = 50;
+						b.particles_per_second = 100;
+						b.spawn_type = e_emitter_spawn_type_rect_center;
+						b.spawn_data.xy = c_player_size_v;
+						soft_data->super_speed_emitter_index = maybe(add_emitter(a, b));
+					}
+				}
+				else {
+					if(soft_data->super_speed_emitter_index.valid) {
+						s_particle_emitter_b* emitter = &soft_data->emitter_b_arr[soft_data->super_speed_emitter_index.value];
+						emitter->duration = 0;
+						soft_data->super_speed_emitter_index = zero;
+					}
 				}
 			}
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		draw player end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 			{
 				s_render_flush_data data = make_render_flush_data(zero, zero);
@@ -2010,7 +2055,7 @@ func b8 check_action(float curr_time, float timestamp, float grace)
 	return result;
 }
 
-func void do_player_move(int movement_index, float movement, s_entity* player)
+func void do_player_move(int movement_index, float movement, s_player* player)
 {
 	assert(movement_index == 0 || movement_index == 1);
 	s_hard_game_data* hard_data = &game->hard_data;
@@ -2059,6 +2104,7 @@ func void do_player_move(int movement_index, float movement, s_entity* player)
 						hard_data->consumed_tile_arr[index.y][index.x] = true;
 						play_sound(e_sound_clap);
 						do_screen_shake(30);
+						soft_data->collected_upgrade_this_run = true;
 
 						{
 							s_particle_emitter_a a = zero;
@@ -2126,7 +2172,6 @@ func void do_player_move(int movement_index, float movement, s_entity* player)
 						}
 						// @Note(tkap, 28/06/2025): Die
 						else {
-							// @TODO(tkap, 30/06/2025): maybe need to break
 							start_restart(player->pos);
 						}
 					}
@@ -2349,12 +2394,19 @@ func s_v2 get_player_spawn_pos()
 
 func void start_restart(s_v2 pos)
 {
+	s_hard_game_data* hard_data = &game->hard_data;
 	s_soft_game_data* soft_data = &game->hard_data.soft_data;
 	b8 restarting = soft_data->start_restart_timestamp > 0;
 	if(!restarting) {
 		soft_data->player_pos_when_restart_started = pos;
 		soft_data->start_restart_timestamp = game->update_time;
 		play_sound(e_sound_restart);
+
+		if(soft_data->collected_upgrade_this_run) {
+			int index = hard_data->ghost_count % c_max_ghosts;
+			hard_data->ghost_arr[index] = soft_data->curr_ghost;
+			hard_data->ghost_count += 1;
+		}
 	}
 }
 
@@ -2384,5 +2436,11 @@ func s_m4 get_editor_view_matrix()
 {
 	s_m4 result = m4_scale(v3(game->editor.zoom, game->editor.zoom, 1.0f));
 	result *= m4_translate(v3(game->editor.cam_pos * -1, 0));
+	return result;
+}
+
+func b8 are_we_in_super_speed()
+{
+	b8 result = check_action(game->update_time, game->hard_data.soft_data.super_speed_timestamp, c_super_speed_duration);
 	return result;
 }
