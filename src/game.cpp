@@ -618,7 +618,10 @@ func void update()
 
 	if(do_player_input) {
 
-		if(check_action(game->update_time, soft_data->want_to_super_speed_timestamp, 0.0f) && soft_data->super_speed_timestamp == 0) {
+		if(
+			check_action(game->update_time, soft_data->want_to_super_speed_timestamp, 0.0f) && soft_data->super_speed_timestamp == 0 &&
+			has_upgrade(e_upgrade_super_speed)
+		) {
 			soft_data->super_speed_timestamp = game->update_time;
 		}
 
@@ -1090,7 +1093,7 @@ func void render(float interp_dt, float delta)
 				}
 
 				{
-					s_render_flush_data data = make_render_flush_data(zero, zero);
+					s_render_flush_data data = make_render_flush_data(zero, v3(player_pos, 0.0f));
 					data.projection = ortho;
 					data.blend_mode = e_blend_mode_normal;
 					data.depth_mode = e_depth_mode_read_no_write;
@@ -1130,7 +1133,6 @@ func void render(float interp_dt, float delta)
 
 				topleft_index.x = at_least(0, topleft_index.x - 4);
 				topleft_index.y = at_least(0, topleft_index.y - 4);
-				s_v2i bottomright_index = v2i(ceilfi(edge_bottomright.x / c_tile_size), ceilfi(edge_bottomright.y / c_tile_size));
 				bottomright_index.x = at_most(c_max_tiles, bottomright_index.x + 4);
 				bottomright_index.y = at_most(c_max_tiles, bottomright_index.y + 4);
 

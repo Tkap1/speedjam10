@@ -32,20 +32,28 @@ uniform sampler2D noise;
 
 out vec4 out_color;
 
+float random (vec2 st) {
+	return fract(
+		sin(dot(st.xy,vec2(12.9898,78.233)))*43758.5453123
+	);
+}
+
 void main()
 {
+	vec2 uv = v_uv * 2.0;
+	uv.y = 1.0 - uv.y;
+	uv.x *= 16.0/9.0;
+	vec2 player = player_pos.xy * vec2(1, 1) * 0.001;
+	uv = sin(uv + vec2(-0.5, 0.5) + player - render_time * 0.01) * 0.5 + 0.5;
+	float n = texture(noise, (uv + render_time * 0.05)).r;
 	vec3 color = vec3(0.0);
-	vec2 uv = v_uv * 2.0 - 1.0;
-	float curve = abs(uv.x);
-	curve = smoothstep(0.5, 0.0, curve);
-	vec2 uv2 = v_uv * vec2(curve, 1.0);
-	float n = texture(noise, uv2 + vec2(0.0, cam_pos.z * 0.01)).r;
-	float strength = 0.1;
-	float d = distance(vec2(player_pos.x * 0.04, 0.5), uv);
-	d = smoothstep(0.4, 0.0, d);
-	strength += d * 0.5;
-	strength -= pow(smoothstep(0.2, 0.9, curve), 16.0) * 0.05;
-	color = vec3(n * strength);
-	out_color = vec4(color, 1.0);
+	for(int i = 0; i < 50; i += 1) {
+		float r0 = random(vec2(i * 3.141, i * 3.141));
+		float r1 = random(vec2(i * 547.341, i * 577.341));
+		float d = distance(vec2(r0, r1), uv);
+		float s = smoothstep(0.1, 0.15, d) * smoothstep(0.15, 0.1, d);
+		color.g += s * n * 0.5;
+	}
+	out_color = vec4(color ,1);
 }
 #endif
