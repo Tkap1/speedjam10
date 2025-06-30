@@ -187,6 +187,7 @@ enum e_game_state0
 	e_game_state0_leaderboard,
 	e_game_state0_win_leaderboard,
 	e_game_state0_options,
+	e_game_state0_pause,
 	e_game_state0_play,
 	e_game_state0_input_name,
 };
@@ -319,6 +320,8 @@ struct s_game
 
 	s_fbo light_fbo;
 
+	b8 dim_player_when_out_of_jumps;
+	b8 hide_background;
 	b8 hide_timer;
 	b8 hide_ghosts;
 	b8 disable_screen_shake;

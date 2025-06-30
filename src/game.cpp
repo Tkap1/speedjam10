@@ -424,6 +424,14 @@ func void input()
 							pop_state(&hard_data->state1);
 						}
 					}
+					else if(key == SDLK_ESCAPE && event.key.repeat == 0) {
+						if(state0 == e_game_state0_play && state1 == e_game_state1_default) {
+							add_state(&game->state0, e_game_state0_pause);
+						}
+						else if(state0 == e_game_state0_pause) {
+							pop_state_transition(&game->state0, game->render_time, c_transition_time);
+						}
+					}
 					else if(key == SDLK_g && event.key.repeat == 0) {
 						if(state0 == e_game_state0_play) {
 							s_v2 target_pos = zero;
@@ -780,6 +788,9 @@ func void render(float interp_dt, float delta)
 
 		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		main menu start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		case e_game_state0_main_menu: {
+			game->speed = 0;
+
+			draw_background(zero, ortho);
 
 			if(do_button(S("Play"), wxy(0.5f, 0.5f), true) || is_key_pressed(SDLK_RETURN, true)) {
 				add_state_transition(&game->state0, e_game_state0_play, game->render_time, c_transition_time);
@@ -811,8 +822,45 @@ func void render(float interp_dt, float delta)
 		} break;
 		// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		main menu end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		pause menu start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+		case e_game_state0_pause: {
+			game->speed = 0;
+
+			draw_background(zero, ortho);
+
+			if(do_button(S("Resume"), wxy(0.5f, 0.5f), true) || is_key_pressed(SDLK_RETURN, true)) {
+				pop_state_transition(&game->state0, game->render_time, c_transition_time);
+			}
+
+			if(do_button(S("Leaderboard"), wxy(0.5f, 0.6f), true)) {
+				#if defined(__EMSCRIPTEN__)
+				get_leaderboard(c_leaderboard_id);
+				#endif
+				add_state_transition(&game->state0, e_game_state0_leaderboard, game->render_time, c_transition_time);
+			}
+
+			if(do_button(S("Options"), wxy(0.5f, 0.7f), true)) {
+				add_state_transition(&game->state0, e_game_state0_options, game->render_time, c_transition_time);
+			}
+
+			draw_text(c_game_name, wxy(0.5f, 0.2f), 128, make_color(1), true, &game->font);
+			draw_text(S("www.twitch.tv/Tkap1"), wxy(0.5f, 0.3f), 32, make_color(0.6f), true, &game->font);
+
+			{
+				s_render_flush_data data = make_render_flush_data(zero, zero);
+				data.projection = ortho;
+				data.blend_mode = e_blend_mode_normal;
+				data.depth_mode = e_depth_mode_no_read_yes_write;
+				render_flush(data, true);
+			}
+
+		} break;
+		// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		pause menu end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		leaderboard start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		case e_game_state0_leaderboard: {
+			game->speed = 0;
+			draw_background(zero, ortho);
 			do_leaderboard();
 
 			{
@@ -826,6 +874,8 @@ func void render(float interp_dt, float delta)
 		} break;
 
 		case e_game_state0_win_leaderboard: {
+			game->speed = 0;
+			draw_background(zero, ortho);
 			do_leaderboard();
 
 			{
@@ -858,29 +908,45 @@ func void render(float interp_dt, float delta)
 
 		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		options start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		case e_game_state0_options: {
-			s_v2 pos = wxy(0.5f, 0.4f);
+			game->speed = 0;
+			draw_background(zero, ortho);
+
+			s_v2 pos = wxy(0.5f, 0.3f);
+			s_v2 button_size = v2(600, 48);
 
 			{
 				s_len_str text = format_text("Sound: %s", game->turn_off_all_sounds ? "Off" : "On");
-				do_bool_button(text, pos, true, &game->turn_off_all_sounds);
+				do_bool_button_ex(text, pos, button_size, true, &game->turn_off_all_sounds);
 				pos.y += 80;
 			}
 
 			{
-				s_len_str text = format_text("Ghosts: %s", game->hide_ghosts ? "Off" : "On");
-				do_bool_button(text, pos, true, &game->hide_ghosts);
+				s_len_str text = format_text("Replay ghosts: %s", game->hide_ghosts ? "Off" : "On");
+				do_bool_button_ex(text, pos, button_size, true, &game->hide_ghosts);
+				pos.y += 80;
+			}
+
+			{
+				s_len_str text = format_text("Background: %s", game->hide_background ? "Off" : "On");
+				do_bool_button_ex(text, pos, button_size, true, &game->hide_background);
 				pos.y += 80;
 			}
 
 			{
 				s_len_str text = format_text("Screen shake: %s", game->disable_screen_shake ? "Off" : "On");
-				do_bool_button(text, pos, true, &game->disable_screen_shake);
+				do_bool_button_ex(text, pos, button_size, true, &game->disable_screen_shake);
 				pos.y += 80;
 			}
 
 			{
 				s_len_str text = format_text("Show timer: %s", game->hide_timer ? "Off" : "On");
-				do_bool_button(text, pos, true, &game->hide_timer);
+				do_bool_button_ex(text, pos, button_size, true, &game->hide_timer);
+				pos.y += 80;
+			}
+
+			{
+				s_len_str text = format_text("Dim player when out of jumps: %s", game->dim_player_when_out_of_jumps ? "On" : "Off");
+				do_bool_button_ex(text, pos, button_size, true, &game->dim_player_when_out_of_jumps);
 				pos.y += 80;
 			}
 
@@ -901,6 +967,7 @@ func void render(float interp_dt, float delta)
 
 		// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		play start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		case e_game_state0_play: {
+			game->speed = 1;
 
 			handle_state(&hard_data->state1, game->render_time);
 			s_player* player = &soft_data->player;
@@ -1134,7 +1201,7 @@ func void render(float interp_dt, float delta)
 					dp1.right_foot_offset = player->right_foot_offset;
 
 					s_v4 color = make_color(1);
-					if(player->jumps_done >= get_max_player_jumps()) {
+					if(game->dim_player_when_out_of_jumps && player->jumps_done >= get_max_player_jumps()) {
 						color = make_color(0.5f);
 					}
 					draw_player(player_pos, angle, dp1, color);
@@ -1221,25 +1288,7 @@ func void render(float interp_dt, float delta)
 				render_flush(data, true);
 			}
 
-			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		background start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-			{
-				{
-					s_instance_data data = zero;
-					data.model = m4_translate(v3(c_world_center, 0));
-					data.model = m4_multiply(data.model, m4_scale(v3(c_world_size, 1)));
-					data.color = make_color(1);
-					add_to_render_group(data, e_shader_background, e_texture_white, e_mesh_quad);
-				}
-
-				{
-					s_render_flush_data data = make_render_flush_data(zero, v3(player_pos, 0.0f));
-					data.projection = ortho;
-					data.blend_mode = e_blend_mode_normal;
-					data.depth_mode = e_depth_mode_read_no_write;
-					render_flush(data, true);
-				}
-			}
-			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		background end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+			draw_background(player_pos, ortho);
 
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		multiplicative light start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 			{
@@ -1413,8 +1462,8 @@ func void render(float interp_dt, float delta)
 				float time_left = loop_time - passed;
 				time_left = at_least(0.0f, time_left);
 				s_len_str text = format_text("%i", ceilfi(time_left));
-				draw_text(text, ui_pos, font_size, make_color(1), false, &game->font);
-				ui_pos.y += font_size;
+				draw_text(text, wxy(0.5f, 0.05f), font_size, make_color(1), true, &game->font);
+				// ui_pos.y += font_size;
 				if(time_left <= 0 && !game->freeze_loop) {
 					start_restart(player->pos);
 				}
@@ -1491,6 +1540,8 @@ func void render(float interp_dt, float delta)
 		// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		play end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 		case e_game_state0_input_name: {
+			game->speed = 0;
+			draw_background(zero, ortho);
 			s_input_name_state* state = &game->input_name_state;
 			float font_size = 36;
 			s_v2 pos = c_world_size * v2(0.5f, 0.4f);
@@ -1891,6 +1942,12 @@ func s_shader load_shader_from_file(char* file, s_linear_arena* arena)
 func b8 do_button(s_len_str text, s_v2 pos, b8 centered)
 {
 	s_v2 size = v2(256, 48);
+	b8 result = do_button_ex(text, pos, size, centered);
+	return result;
+}
+
+func b8 do_button_ex(s_len_str text, s_v2 pos, s_v2 size, b8 centered)
+{
 	b8 result = false;
 	if(!centered) {
 		pos += size * 0.5f;
@@ -1925,9 +1982,16 @@ func b8 do_button(s_len_str text, s_v2 pos, b8 centered)
 
 func b8 do_bool_button(s_len_str text, s_v2 pos, b8 centered, b8* out)
 {
+	s_v2 size = v2(256, 48);
+	b8 result = do_bool_button_ex(text, pos, size, centered, out);
+	return result;
+}
+
+func b8 do_bool_button_ex(s_len_str text, s_v2 pos, s_v2 size, b8 centered, b8* out)
+{
 	assert(out);
 	b8 result = false;
-	if(do_button(text, pos, centered)) {
+	if(do_button_ex(text, pos, size, centered)) {
 		result = true;
 		*out = !(*out);
 	}
@@ -2043,8 +2107,14 @@ func void do_leaderboard()
 {
 	b8 escape = is_key_pressed(SDLK_ESCAPE, true);
 	if(do_button(S("Back"), wxy(0.87f, 0.92f), true) || escape) {
-		add_state_transition(&game->state0, e_game_state0_main_menu, game->render_time, c_transition_time);
-		clear_state(&game->state0);
+		s_maybe<int> prev = get_previous_non_temporary_state(&game->state0);
+		if(prev.valid && prev.value == e_game_state0_pause) {
+			pop_state_transition(&game->state0, game->render_time, c_transition_time);
+		}
+		else {
+			add_state_transition(&game->state0, e_game_state0_main_menu, game->render_time, c_transition_time);
+			clear_state(&game->state0);
+		}
 	}
 
 	{
@@ -2593,4 +2663,25 @@ func void add_timed_msg(s_len_str str, s_v2 pos)
 	msg.spawn_timestamp = game->update_time;
 	str_into_builder(&msg.builder, str);
 	game->hard_data.soft_data.timed_msg_arr.add_if_not_full(msg);
+}
+
+func void draw_background(s_v2 player_pos, s_m4 ortho)
+{
+	if(game->hide_background) { return; }
+
+	{
+		s_instance_data data = zero;
+		data.model = m4_translate(v3(c_world_center, 0));
+		data.model = m4_multiply(data.model, m4_scale(v3(c_world_size, 1)));
+		data.color = make_color(1);
+		add_to_render_group(data, e_shader_background, e_texture_white, e_mesh_quad);
+	}
+
+	{
+		s_render_flush_data data = make_render_flush_data(zero, v3(player_pos, 0.0f));
+		data.projection = ortho;
+		data.blend_mode = e_blend_mode_normal;
+		data.depth_mode = e_depth_mode_read_no_write;
+		render_flush(data, true);
+	}
 }

@@ -24,6 +24,8 @@ background on main menu
 music? check rules
 keycap thingy
 review hitbox vs sprite
+fix "update" input checks
+check that all the cheat stuff is in debug
 
 PRIORITY:
 	finish map

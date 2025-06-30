@@ -16,7 +16,9 @@ template <typename t>
 func void add_to_render_group(t data, e_shader shader_id, e_texture texture_id, e_mesh mesh_id);
 func s_shader load_shader_from_file(char* file, s_linear_arena* arena);
 func b8 do_button(s_len_str text, s_v2 pos, b8 centered);
+func b8 do_button_ex(s_len_str text, s_v2 pos, s_v2 size, b8 centered);
 func b8 do_bool_button(s_len_str text, s_v2 pos, b8 centered, b8* out);
+func b8 do_bool_button_ex(s_len_str text, s_v2 pos, s_v2 size, b8 centered, b8* out);
 func b8 is_key_pressed(int key, b8 consume);
 func b8 is_key_down(int key);
 template <int n>
@@ -57,3 +59,4 @@ func b8 are_we_in_super_speed();
 func void draw_player(s_v2 pos, float angle, s_draw_player dp, s_v4 color);
 func s_draw_player get_player_draw_data();
 func void add_timed_msg(s_len_str str, s_v2 pos);
+func void draw_background(s_v2 player_pos, s_m4 ortho);
