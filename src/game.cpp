@@ -429,7 +429,7 @@ func void input()
 							s_v2 target_pos = zero;
 							b8 do_teleport = false;
 							if(state1 == e_game_state1_default) {
-								s_m4 view = m4_translate(v3(-(player->pos.x - c_world_center.x), -(player->pos.y - c_world_center.y), 0.0f));
+								s_m4 view = get_player_view_matrix(player->pos);
 								s_m4 inverse_view = m4_inverse(view);
 								s_v2 temp_mouse = v2_multiply_m4(g_mouse, m4_inverse(view));
 								s_v2i index = v2i(
@@ -441,8 +441,7 @@ func void input()
 							}
 							else if(state1 == e_game_state1_editor) {
 
-								s_m4 view = m4_scale(v3(game->editor.zoom, game->editor.zoom, 1.0f));
-								view *= m4_translate(v3(game->editor.cam_pos * -1, 0));
+								s_m4 view = get_editor_view_matrix();
 								s_m4 inverse_view = m4_inverse(view);
 								s_v2 temp_mouse = v2_multiply_m4(g_mouse, m4_inverse(view));
 								s_v2i index = v2i(
@@ -915,7 +914,7 @@ func void render(float interp_dt, float delta)
 
 					do_game = true;
 
-					view = m4_translate(v3(-(player_pos.x - c_world_center.x), -(player_pos.y - c_world_center.y), 0.0f));
+					view = get_player_view_matrix(player_pos);
 
 				} break;
 
@@ -940,8 +939,7 @@ func void render(float interp_dt, float delta)
 					movement = v2_normalized(movement);
 					game->editor.cam_pos += movement * 20 / game->editor.zoom;
 
-					view = m4_scale(v3(game->editor.zoom, game->editor.zoom, 1.0f));
-					view *= m4_translate(v3(game->editor.cam_pos * -1, 0));
+					view = get_editor_view_matrix();
 
 					s_v2 temp_mouse = v2_multiply_m4(g_mouse, m4_inverse(view));
 					s_v2i index = v2i(
@@ -2060,6 +2058,7 @@ func void do_player_move(int movement_index, float movement, s_entity* player)
 					if(tile_is_upgrade(tile_type)) {
 						hard_data->consumed_tile_arr[index.y][index.x] = true;
 						play_sound(e_sound_clap);
+						do_screen_shake(30);
 
 						{
 							s_particle_emitter_a a = zero;
@@ -2133,6 +2132,7 @@ func void do_player_move(int movement_index, float movement, s_entity* player)
 					}
 					else if(tile_type == e_tile_type_breakable && has_upgrade(e_upgrade_break_tiles)) {
 						soft_data->broken_tile_arr[index.y][index.x] = true;
+						do_screen_shake(10);
 						play_sound(e_sound_break);
 					}
 					else if(!collided && blocks_movement) {
@@ -2337,4 +2337,33 @@ func void start_restart(s_v2 pos)
 		soft_data->start_restart_timestamp = game->update_time;
 		play_sound(e_sound_restart);
 	}
+}
+
+func void do_screen_shake(float intensity)
+{
+	s_soft_game_data* soft_data = &game->hard_data.soft_data;
+	soft_data->start_screen_shake_timestamp = game->render_time;
+	soft_data->shake_intensity = intensity;
+}
+
+func s_m4 get_player_view_matrix(s_v2 player_pos)
+{
+	s_soft_game_data* soft_data = &game->hard_data.soft_data;
+	s_m4 result = m4_translate(v3(-(player_pos.x - c_world_center.x), -(player_pos.y - c_world_center.y), 0.0f));
+	if(check_action(game->render_time, soft_data->start_screen_shake_timestamp, c_shake_duration)) {
+		s_v3 offset = zero;
+		s_time_data data = get_time_data(game->render_time, soft_data->start_screen_shake_timestamp, c_shake_duration);
+		float t = at_least(0.0f, data.inv_percent);
+		offset.x = randf32_11(&game->rng) * soft_data->shake_intensity * t;
+		offset.y = randf32_11(&game->rng) * soft_data->shake_intensity * t;
+		result *= m4_translate(offset);
+	}
+	return result;
+}
+
+func s_m4 get_editor_view_matrix()
+{
+	s_m4 result = m4_scale(v3(game->editor.zoom, game->editor.zoom, 1.0f));
+	result *= m4_translate(v3(game->editor.cam_pos * -1, 0));
+	return result;
 }

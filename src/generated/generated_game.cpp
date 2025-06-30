@@ -49,3 +49,6 @@ func void draw_light(s_v2 pos, float radius, s_v4 color);
 func s_v2 get_upgrade_offset(float interp_dt);
 func s_v2 get_player_spawn_pos();
 func void start_restart(s_v2 pos);
+func void do_screen_shake(float intensity);
+func s_m4 get_player_view_matrix(s_v2 player_pos);
+func s_m4 get_editor_view_matrix();
