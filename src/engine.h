@@ -12,33 +12,25 @@ enum e_mesh
 enum e_shader
 {
 	e_shader_mesh,
-	e_shader_depth_only,
 	e_shader_flat,
-	e_shader_fresnel,
-	e_shader_post,
 	e_shader_circle,
-	e_shader_portal,
 	e_shader_button,
 	e_shader_text,
 	e_shader_background,
-	e_shader_teleporter,
 	e_shader_line,
+	e_shader_light,
 	e_shader_count,
 };
 
 global constexpr char* c_shader_path_arr[e_shader_count] = {
 	"shaders/mesh.shader",
-	"shaders/depth_only.shader",
 	"shaders/flat.shader",
-	"shaders/fresnel.shader",
-	"shaders/post.shader",
 	"shaders/circle.shader",
-	"shaders/portal.shader",
 	"shaders/button.shader",
 	"shaders/text.shader",
 	"shaders/background.shader",
-	"shaders/teleporter.shader",
 	"shaders/line.shader",
+	"shaders/light.shader",
 };
 
 

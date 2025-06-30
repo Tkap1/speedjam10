@@ -18,3 +18,4 @@ better player sprite
 gray out if no more jumps?
 bigger hitbox on ugprades
 do 100% speedrun and normal any%
+upgrades are sometimes drawn behind blocks

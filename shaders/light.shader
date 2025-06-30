@@ -18,7 +18,8 @@ shared_var vec2 v_uv;
 void main()
 {
 	vec3 vertex = vertex_pos;
-	gl_Position = projection * view * instance_model * vec4(vertex, 1);
+
+	gl_Position = projection * view * instance_model * vec4(vertex, 1.0);
 	v_color = vertex_color * instance_color;
 	v_normal = vertex_normal;
 	v_uv = vertex_uv;
@@ -28,22 +29,18 @@ void main()
 #if !defined(m_vertex)
 
 uniform sampler2D in_texture;
-uniform sampler2D noise;
 
 out vec4 out_color;
 
 void main()
 {
-	vec3 color = vec3(0.0);
-	// color = v_color.rgb;
 	vec2 uv = v_uv * 2.0 - 1.0;
-	float n = texture(noise, v_uv * 0.5 + vec2(cam_pos.z * 0.001, cam_pos.z * 0.005)).r;
-	// n = max(0.0, n - 0.3);
-	// n = pow(n, 0.25);
-	// color = vec3(texture(noise, v_uv).r) * v_color.rgb;
-	color.rgb = vec3(0.0);
-	float a = smoothstep(0.2, 0.5, abs(uv.x)+n*0.1);
-	// float a = 1;
-	out_color = vec4(color, a);
+	// @Note(tkap, 01/05/2025): This is probably needed for 2D but not 3D
+	// uv.x *= 16.0 / 9.0;
+	vec3 color = vec3(0.0);
+	float d = length(uv);
+	float a = smoothstep(0.5, 0.2, d);
+	color = v_color.rgb * a * v_color.a;
+	out_color = vec4(color, 1.0);
 }
 #endif

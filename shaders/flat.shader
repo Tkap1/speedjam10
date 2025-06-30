@@ -46,5 +46,6 @@ void main()
 {
 	vec4 texture_color = texture(in_texture, v_instance_uv);
 	out_color = texture_color * v_color;
+	if(out_color.a <= 0.0) { discard; }
 }
 #endif

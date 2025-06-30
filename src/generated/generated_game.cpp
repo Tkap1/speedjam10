@@ -44,3 +44,6 @@ func int get_update_count_with_upgrades(int update_count);
 func b8 are_we_immune();
 func float get_max_loop_time();
 func b8 tile_is_upgrade(e_tile_type type);
+func void draw_circle(s_v2 pos, float radius, s_v4 color);
+func void draw_light(s_v2 pos, float radius, s_v4 color);
+func s_v2 get_upgrade_offset(float interp_dt);

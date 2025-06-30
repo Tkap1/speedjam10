@@ -793,7 +793,7 @@ func void render(float interp_dt, float delta)
 				s_render_flush_data data = make_render_flush_data(zero, zero);
 				data.projection = ortho;
 				data.blend_mode = e_blend_mode_normal;
-				data.depth_mode = e_depth_mode_no_read_no_write;
+				data.depth_mode = e_depth_mode_no_read_yes_write;
 				render_flush(data, true);
 			}
 
@@ -808,7 +808,7 @@ func void render(float interp_dt, float delta)
 				s_render_flush_data data = make_render_flush_data(zero, zero);
 				data.projection = ortho;
 				data.blend_mode = e_blend_mode_normal;
-				data.depth_mode = e_depth_mode_no_read_no_write;
+				data.depth_mode = e_depth_mode_no_read_yes_write;
 				render_flush(data, true);
 			}
 
@@ -838,7 +838,7 @@ func void render(float interp_dt, float delta)
 				s_render_flush_data data = make_render_flush_data(zero, zero);
 				data.projection = ortho;
 				data.blend_mode = e_blend_mode_normal;
-				data.depth_mode = e_depth_mode_no_read_no_write;
+				data.depth_mode = e_depth_mode_no_read_yes_write;
 				render_flush(data, true);
 			}
 
@@ -876,7 +876,7 @@ func void render(float interp_dt, float delta)
 				s_render_flush_data data = make_render_flush_data(zero, zero);
 				data.projection = ortho;
 				data.blend_mode = e_blend_mode_normal;
-				data.depth_mode = e_depth_mode_no_read_no_write;
+				data.depth_mode = e_depth_mode_no_read_yes_write;
 				render_flush(data, true);
 			}
 		} break;
@@ -889,6 +889,9 @@ func void render(float interp_dt, float delta)
 
 			s_m4 view = zero;
 
+			s_entity* player = &soft_data->entity_arr.data[0];
+			s_v2 player_pos = lerp_v2(player->prev_pos, player->pos, interp_dt);
+
 			e_game_state1 state1 = (e_game_state1)get_state(&hard_data->state1);
 			b8 do_editor = false;
 			b8 do_game = false;
@@ -897,8 +900,6 @@ func void render(float interp_dt, float delta)
 
 					do_game = true;
 
-					s_entity* player = &soft_data->entity_arr.data[0];
-					s_v2 player_pos = lerp_v2(player->prev_pos, player->pos, interp_dt);
 					view = m4_translate(v3(-(player_pos.x - c_world_center.x), -(player_pos.y - c_world_center.y), 0.0f));
 
 				} break;
@@ -980,7 +981,7 @@ func void render(float interp_dt, float delta)
 						s_v2 size = c_tile_size_v;
 						if(!consumed && tile_is_upgrade(tile)) {
 							float t = update_time_to_render_time(game->update_time, interp_dt);
-							pos.y += sinf(t * 3.14f) * 3;
+							pos += get_upgrade_offset(interp_dt);
 							s_v2 extra_size = v2(sinf2(t * 4.26f) * 8);
 							size += extra_size;
 							pos -= extra_size * 0.5f;
@@ -1009,7 +1010,6 @@ func void render(float interp_dt, float delta)
 								s_particle_emitter_b* b = &soft_data->emitter_b_arr[soft_data->particle_emitter_index_arr[y][x]];
 								b->paused = false;
 							}
-
 						}
 						draw_atlas_topleft(pos, size, atlas_index, color);
 					}
@@ -1078,6 +1078,105 @@ func void render(float interp_dt, float delta)
 				data.depth_mode = e_depth_mode_no_read_yes_write;
 				render_flush(data, true);
 			}
+
+			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		background start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+			{
+				{
+					s_instance_data data = zero;
+					data.model = m4_translate(v3(c_world_center, 0));
+					data.model = m4_multiply(data.model, m4_scale(v3(c_world_size, 1)));
+					data.color = make_color(1);
+					add_to_render_group(data, e_shader_background, e_texture_white, e_mesh_quad);
+				}
+
+				{
+					s_render_flush_data data = make_render_flush_data(zero, zero);
+					data.projection = ortho;
+					data.blend_mode = e_blend_mode_normal;
+					data.depth_mode = e_depth_mode_read_no_write;
+					render_flush(data, true);
+				}
+			}
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		background end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		multiplicative light start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+			{
+				clear_framebuffer_color(game->light_fbo.id, make_color(0.5f));
+				draw_light(player_pos, 512, make_color(1.0f));
+				{
+					s_render_flush_data data = make_render_flush_data(zero, zero);
+					data.projection = ortho;
+					data.view = view;
+					data.blend_mode = e_blend_mode_additive;
+					data.depth_mode = e_depth_mode_no_read_no_write;
+					data.fbo = game->light_fbo;
+					render_flush(data, true);
+				}
+
+				draw_texture_screen(c_world_center, c_world_size, make_color(1), e_texture_light, e_shader_flat, v2(0, 1), v2(1, 0));
+				{
+					s_render_flush_data data = make_render_flush_data(zero, zero);
+					data.projection = ortho;
+					data.blend_mode = e_blend_mode_multiply;
+					data.depth_mode = e_depth_mode_no_read_no_write;
+					render_flush(data, true);
+				}
+			}
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		multiplicative light end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		additive light start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+			{
+				clear_framebuffer_color(game->light_fbo.id, make_color(0.0f));
+
+				topleft_index.x = at_least(0, topleft_index.x - 4);
+				topleft_index.y = at_least(0, topleft_index.y - 4);
+				s_v2i bottomright_index = v2i(ceilfi(edge_bottomright.x / c_tile_size), ceilfi(edge_bottomright.y / c_tile_size));
+				bottomright_index.x = at_most(c_max_tiles, bottomright_index.x + 4);
+				bottomright_index.y = at_most(c_max_tiles, bottomright_index.y + 4);
+
+				for(int y = topleft_index.y; y < bottomright_index.y; y += 1) {
+					for(int x = topleft_index.x; x < bottomright_index.x; x += 1) {
+						e_tile_type tile = game->map.tile_arr[y][x];
+						b8 consumed = hard_data->consumed_tile_arr[y][x];
+						s_v2 size = c_tile_size_v;
+						s_v2 pos = c_tile_size_v * v2i(x, y) + size * 0.5f;
+						if(tile == e_tile_type_spike) {
+							draw_light(pos, 96, make_color(0.1f, 0, 0));
+						}
+						else if(tile_is_upgrade(tile) && !consumed) {
+							pos += get_upgrade_offset(interp_dt);
+							s_v4 color = hex_to_rgb(0x137BA2);
+							color.r += 0.1f;
+							color.g += 0.1f;
+							color.b += 0.3f;
+							color = multiply_rgb(color, 0.5f);
+							draw_light(pos, 128, color);
+						}
+					}
+				}
+
+				{
+					s_render_flush_data data = make_render_flush_data(zero, zero);
+					data.projection = ortho;
+					data.view = view;
+					data.blend_mode = e_blend_mode_additive;
+					data.depth_mode = e_depth_mode_no_read_no_write;
+					data.fbo = game->light_fbo;
+					render_flush(data, true);
+				}
+
+				draw_texture_screen(c_world_center, c_world_size, make_color(1), e_texture_light, e_shader_flat, v2(0, 1), v2(1, 0));
+				{
+					s_render_flush_data data = make_render_flush_data(zero, zero);
+					data.projection = ortho;
+					data.blend_mode = e_blend_mode_additive;
+					data.depth_mode = e_depth_mode_no_read_no_write;
+					render_flush(data, true);
+				}
+			}
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^		additive light end		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
 
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		particles start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 			update_particles(delta);
@@ -2171,5 +2270,32 @@ func b8 tile_is_upgrade(e_tile_type type)
 		xcase e_tile_type_upgrade_more_loop_time: { result = true; }
 		break; default: { result = false; }
 	}
+	return result;
+}
+
+func void draw_circle(s_v2 pos, float radius, s_v4 color)
+{
+	s_instance_data data = zero;
+	data.model = m4_translate(v3(pos, 0));
+	data.model = m4_multiply(data.model, m4_scale(v3(radius * 2, radius * 2, 1)));
+	data.color = color;
+
+	add_to_render_group(data, e_shader_circle, e_texture_white, e_mesh_quad);
+}
+
+func void draw_light(s_v2 pos, float radius, s_v4 color)
+{
+	s_instance_data data = zero;
+	data.model = m4_translate(v3(pos, 0));
+	data.model = m4_multiply(data.model, m4_scale(v3(radius * 2, radius * 2, 1)));
+	data.color = color;
+
+	add_to_render_group(data, e_shader_light, e_texture_white, e_mesh_quad);
+}
+
+func s_v2 get_upgrade_offset(float interp_dt)
+{
+	float t = update_time_to_render_time(game->update_time, interp_dt);
+	s_v2 result = v2(0.0f, sinf(t * 3.14f) * 3);
 	return result;
 }
