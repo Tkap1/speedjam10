@@ -1107,11 +1107,11 @@ func void render(float interp_dt, float delta)
 			s_v2 edge_bottomright = v2_multiply_m4(c_world_size, inverse_view);
 
 			s_v2i topleft_index = v2i(floorfi(edge_topleft.x / c_tile_size), floorfi(edge_topleft.y / c_tile_size));
-			topleft_index.x = at_least(0, topleft_index.x - 1);
-			topleft_index.y = at_least(0, topleft_index.y - 1);
+			topleft_index.x = at_least(0, topleft_index.x - 4);
+			topleft_index.y = at_least(0, topleft_index.y - 4);
 			s_v2i bottomright_index = v2i(ceilfi(edge_bottomright.x / c_tile_size), ceilfi(edge_bottomright.y / c_tile_size));
-			bottomright_index.x = at_most(c_max_tiles, bottomright_index.x + 1);
-			bottomright_index.y = at_most(c_max_tiles, bottomright_index.y + 1);
+			bottomright_index.x = at_most(c_max_tiles, bottomright_index.x + 4);
+			bottomright_index.y = at_most(c_max_tiles, bottomright_index.y + 4);
 
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		draw tiles start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 			for(int y = topleft_index.y; y < bottomright_index.y; y += 1) {
@@ -1375,11 +1375,6 @@ func void render(float interp_dt, float delta)
 			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv		additive light start		vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 			{
 				clear_framebuffer_color(game->light_fbo.id, make_color(0.0f));
-
-				topleft_index.x = at_least(0, topleft_index.x - 3);
-				topleft_index.y = at_least(0, topleft_index.y - 3);
-				bottomright_index.x = at_most(c_max_tiles, bottomright_index.x + 3);
-				bottomright_index.y = at_most(c_max_tiles, bottomright_index.y + 3);
 
 				for(int y = topleft_index.y; y < bottomright_index.y; y += 1) {
 					for(int x = topleft_index.x; x < bottomright_index.x; x += 1) {
